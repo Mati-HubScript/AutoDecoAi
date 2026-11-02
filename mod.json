@@ -1,14 +1,9 @@
 {
-	"geode": "4.2.0",
-	"gd": {
-		"win": "2.2074",
-		"android": "2.2074",
-		"mac": "2.2074",
-		"ios": "2.2074"
-	},
+	"geode": "v5.11.2",
+	"gd": "*",
 	"id": "pulidoxgd.decorador-ia",
 	"name": "Decorador IA",
-	"version": "v1.1.0",
+	"version": "v1.2.0",
 	"developer": "pulidoxgd",
 	"description": "Selecciona una parte del nivel, escribe un estilo y la IA la decora con objetos del editor. Soporta Gemini (gratis), Ollama (local) y Anthropic.",
 	"tags": ["editor", "utility", "enhancement"],
