@@ -1,13 +1,7 @@
 #include "DecorPopup.hpp"
+#include <sstream>
 #include <algorithm>
 #include <limits>
-#include <cctype>
-
-// matjson: asArray() devuelve Result<vector&>; copiamos el vector o devolvemos uno vacio
-static std::vector<matjson::Value> asVec(matjson::Value const& v) {
-	if (auto a = v.asArray(); a.isOk()) return a.unwrap();
-	return {};
-}
 
 static constexpr ccColor3B COL_OK{120, 230, 150};
 static constexpr ccColor3B COL_ERR{255, 110, 110};
@@ -15,7 +9,7 @@ static constexpr ccColor3B COL_DIM{170, 170, 185};
 
 DecorPopup* DecorPopup::create() {
 	auto ret = new DecorPopup();
-	if (ret->init()) {
+	if (ret->initAnchored(320.f, 200.f, "square02_001.png")) {
 		ret->autorelease();
 		return ret;
 	}
@@ -23,9 +17,7 @@ DecorPopup* DecorPopup::create() {
 	return nullptr;
 }
 
-bool DecorPopup::init() {
-	if (!Popup::init(320.f, 200.f)) return false;
-
+bool DecorPopup::setup() {
 	// Estilo minimalista oscuro
 	m_bgSprite->setColor({18, 18, 26});
 	m_bgSprite->setOpacity(238);
@@ -50,7 +42,7 @@ bool DecorPopup::init() {
 	m_mainLayer->addChild(m_info);
 
 	// Caja de texto
-	m_input = TextInput::create(280.f, "Ej: decoralo tipo demoniaco", "chatFont.fnt");
+	m_input = TextInput::create(280.f, "Ej: decóralo tipo demoníaco", "chatFont.fnt");
 	m_input->setMaxCharCount(200);
 	m_input->setPosition({size.width / 2, size.height - 95.f});
 	m_mainLayer->addChild(m_input);
@@ -80,7 +72,7 @@ bool DecorPopup::init() {
 }
 
 void DecorPopup::onCloseBtn(CCObject*) {
-	this->keyBackClicked();
+	this->onClose(nullptr);
 }
 
 void DecorPopup::setStatus(std::string const& text, ccColor3B color) {
@@ -91,8 +83,8 @@ void DecorPopup::setStatus(std::string const& text, ccColor3B color) {
 void DecorPopup::onSend(CCObject*) {
 	if (m_busy) return;
 
-	std::string prompt = m_input->getString();
-	if (prompt.empty()) return this->setStatus("Escribe una referencia de decoracion", COL_ERR);
+	auto prompt = m_input->getString();
+	if (prompt.empty()) return this->setStatus("Escribe una referencia de decoración", COL_ERR);
 
 	auto editor = EditorUI::get();
 	auto lel = LevelEditorLayer::get();
@@ -101,25 +93,14 @@ void DecorPopup::onSend(CCObject*) {
 	auto sel = editor->getSelectedObjects();
 	if (!sel || sel->count() == 0) return this->setStatus("Selecciona objetos en el editor primero", COL_ERR);
 
-	auto* mod = Mod::get();
-
 	// IDs permitidos
 	m_allowed.clear();
-	std::string idsRaw = mod->getSettingValue<std::string>("allowed-ids");
-	size_t pos = 0;
-	while (pos <= idsRaw.size()) {
-		size_t comma = idsRaw.find(',', pos);
-		if (comma == std::string::npos) comma = idsRaw.size();
-		std::string part = idsRaw.substr(pos, comma - pos);
-		part.erase(std::remove_if(part.begin(), part.end(), [](unsigned char c) { return std::isspace(c); }), part.end());
-		if (!part.empty()) {
-			try { m_allowed.insert(std::stoi(part)); } catch (...) {}
-		}
-		pos = comma + 1;
+	for (auto const& part : utils::string::split(Mod::get()->getSettingValue<std::string>("allowed-ids"), ",")) {
+		if (auto n = utils::numFromString<int>(utils::string::trim(part)); n.isOk()) m_allowed.insert(n.unwrap());
 	}
-	if (m_allowed.empty()) return this->setStatus("La lista de IDs permitidos esta vacia", COL_ERR);
+	if (m_allowed.empty()) return this->setStatus("La lista de IDs permitidos está vacía", COL_ERR);
 
-	// Describir la seleccion (max. 120 objetos) y calcular limites
+	// Describir la selección (máx. 120 objetos) y calcular límites
 	float minX = std::numeric_limits<float>::max(), minY = minX;
 	float maxX = std::numeric_limits<float>::lowest(), maxY = maxX;
 	std::vector<matjson::Value> objs;
@@ -139,7 +120,7 @@ void DecorPopup::onSend(CCObject*) {
 	float margin = 90.f;
 	m_bounds = CCRect(minX - margin, minY - margin, (maxX - minX) + margin * 2, (maxY - minY) + margin * 2);
 
-	int maxObjects = static_cast<int>(mod->getSettingValue<int64_t>("max-objects"));
+	int maxObjects = static_cast<int>(Mod::get()->getSettingValue<int64_t>("max-objects"));
 
 	std::string allowedStr;
 	for (int id : m_allowed) allowedStr += (allowedStr.empty() ? "" : ",") + std::to_string(id);
@@ -156,14 +137,15 @@ void DecorPopup::onSend(CCObject*) {
 
 	std::string user = fmt::format("Style: {}\nSelected objects: {}", prompt, matjson::Value(objs).dump(0));
 
+	auto* mod = Mod::get();
 	m_provider = mod->getSettingValue<std::string>("provider");
 
-	geode::utils::web::WebRequest req;
+	web::WebRequest req;
 	std::string url;
 	matjson::Value body;
 
 	if (m_provider == "Gemini") {
-		std::string key = mod->getSettingValue<std::string>("gemini-key");
+		auto key = mod->getSettingValue<std::string>("gemini-key");
 		if (key.empty()) return this->setStatus("Falta la API key de Gemini en los ajustes", COL_ERR);
 		url = fmt::format("https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
 			mod->getSettingValue<std::string>("gemini-model"));
@@ -179,7 +161,7 @@ void DecorPopup::onSend(CCObject*) {
 		body["contents"] = std::vector<matjson::Value>{content};
 		body["generationConfig"] = gen;
 	} else if (m_provider == "Ollama") {
-		std::string base = mod->getSettingValue<std::string>("ollama-url");
+		auto base = mod->getSettingValue<std::string>("ollama-url");
 		while (!base.empty() && base.back() == '/') base.pop_back();
 		url = base + "/api/chat";
 
@@ -191,7 +173,7 @@ void DecorPopup::onSend(CCObject*) {
 		body["stream"] = false;
 		body["format"] = "json";
 	} else {
-		std::string key = mod->getSettingValue<std::string>("anthropic-key");
+		auto key = mod->getSettingValue<std::string>("anthropic-key");
 		if (key.empty()) return this->setStatus("Falta la API key de Anthropic en los ajustes", COL_ERR);
 		url = "https://api.anthropic.com/v1/messages";
 		req.header("x-api-key", key);
@@ -208,21 +190,25 @@ void DecorPopup::onSend(CCObject*) {
 	req.timeout(std::chrono::seconds(m_provider == "Ollama" ? 240 : 120));
 
 	m_busy = true;
-	this->setStatus(fmt::format("Pensando la decoracion ({})...", m_provider), COL_DIM);
+	this->setStatus(fmt::format("Pensando la decoración ({})...", m_provider), COL_DIM);
 
-	// Geode v5: async::TaskHolder reemplaza a EventListener<WebTask>.
-	// Al cerrar el popup, el holder cancela la peticion automaticamente.
-	m_task.spawn(req.post(url), [this](geode::utils::web::WebResponse res) {
-		this->handleResponse(res);
+	m_listener.bind([this](web::WebTask::Event* e) {
+		if (auto* res = e->getValue()) {
+			this->handleResponse(res);
+		} else if (e->isCancelled()) {
+			m_busy = false;
+			this->setStatus("Petición cancelada", COL_ERR);
+		}
 	});
+	m_listener.setFilter(req.post(url));
 }
 
 static std::string extractText(std::string const& provider, matjson::Value const& json) {
 	std::string text;
 	if (provider == "Gemini") {
-		auto cands = asVec(json["candidates"]);
+		auto cands = json["candidates"].asArray().unwrapOr(std::vector<matjson::Value>{});
 		if (!cands.empty()) {
-			auto parts = asVec(cands[0]["content"]["parts"]);
+			auto parts = cands[0]["content"]["parts"].asArray().unwrapOr(std::vector<matjson::Value>{});
 			for (auto const& part : parts) {
 				if (auto t = part["text"].asString(); t.isOk()) text += t.unwrap();
 			}
@@ -230,36 +216,25 @@ static std::string extractText(std::string const& provider, matjson::Value const
 	} else if (provider == "Ollama") {
 		if (auto t = json["message"]["content"].asString(); t.isOk()) text = t.unwrap();
 	} else {
-		for (auto const& item : asVec(json["content"])) {
+		for (auto const& item : json["content"].asArray().unwrapOr(std::vector<matjson::Value>{})) {
 			if (auto t = item["text"].asString(); t.isOk()) text += t.unwrap();
 		}
 	}
 	return text;
 }
 
-void DecorPopup::handleResponse(geode::utils::web::WebResponse& res) {
+void DecorPopup::handleResponse(web::WebResponse* res) {
 	m_busy = false;
-	if (!res.ok()) {
-		int code = res.code();
-		if (code == 429) return this->setStatus("Limite alcanzado, espera un momento y reintenta", COL_ERR);
-		if (code <= 0) return this->setStatus("No se pudo conectar (Ollama encendido?)", COL_ERR);
-
-		// Leer el mensaje real de error que devuelve el proveedor
-		std::string detail;
-		auto ej = res.json().unwrapOr(matjson::Value());
-		if (auto m = ej["error"]["message"].asString(); m.isOk()) detail = m.unwrap();
-		else if (auto m2 = ej["error"].asString(); m2.isOk()) detail = m2.unwrap();
-
-		this->setStatus(fmt::format("Error {} (toca OK para ver el detalle)", code), COL_ERR);
-		if (detail.empty()) detail = "El servidor no devolvio detalles. Revisa la key y el modelo en los ajustes.";
-		log::error("Error {} ({}): {}", code, m_provider, detail);
-		FLAlertLayer::create(fmt::format("Error {} ({})", code, m_provider).c_str(), detail, "OK")->show();
-		return;
+	if (!res->ok()) {
+		int code = res->code();
+		if (code == 429) return this->setStatus("Límite alcanzado, espera un momento y reintenta", COL_ERR);
+		if (code == 0 || code == -1) return this->setStatus("No se pudo conectar (¿Ollama encendido?)", COL_ERR);
+		return this->setStatus(fmt::format("Error {}: revisa key, modelo y ajustes", code), COL_ERR);
 	}
 
-	auto json = res.json().unwrapOr(matjson::Value());
+	auto json = res->json().unwrapOr(matjson::Value());
 	auto text = extractText(m_provider, json);
-	if (text.empty()) return this->setStatus("La IA devolvio una respuesta vacia", COL_ERR);
+	if (text.empty()) return this->setStatus("La IA devolvió una respuesta vacía", COL_ERR);
 
 	this->applyDecoration(text);
 }
@@ -268,14 +243,14 @@ void DecorPopup::applyDecoration(std::string const& text) {
 	auto a = text.find('{');
 	auto b = text.rfind('}');
 	if (a == std::string::npos || b == std::string::npos || b < a) {
-		return this->setStatus("Respuesta de la IA no valida", COL_ERR);
+		return this->setStatus("Respuesta de la IA no válida", COL_ERR);
 	}
 
 	auto parsed = matjson::parse(text.substr(a, b - a + 1));
 	if (parsed.isErr()) return this->setStatus("No pude leer el JSON de la IA", COL_ERR);
 
 	auto root = parsed.unwrap();
-	auto list = asVec(root["objects"]);
+	auto list = root["objects"].asArray().unwrapOr(std::vector<matjson::Value>{});
 
 	auto lel = LevelEditorLayer::get();
 	if (!lel) return;
@@ -309,6 +284,6 @@ void DecorPopup::applyDecoration(std::string const& text) {
 		created++;
 	}
 
-	if (created == 0) this->setStatus("La IA no devolvio objetos validos", COL_ERR);
-	else this->setStatus(fmt::format("Listo: {} objetos anadidos", created), COL_OK);
+	if (created == 0) this->setStatus("La IA no devolvió objetos válidos", COL_ERR);
+	else this->setStatus(fmt::format("Listo: {} objetos añadidos", created), COL_OK);
 }
