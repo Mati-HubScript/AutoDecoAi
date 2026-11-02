@@ -243,7 +243,18 @@ void DecorPopup::handleResponse(geode::utils::web::WebResponse& res) {
 		int code = res.code();
 		if (code == 429) return this->setStatus("Limite alcanzado, espera un momento y reintenta", COL_ERR);
 		if (code <= 0) return this->setStatus("No se pudo conectar (Ollama encendido?)", COL_ERR);
-		return this->setStatus(fmt::format("Error {}: revisa key, modelo y ajustes", code), COL_ERR);
+
+		// Leer el mensaje real de error que devuelve el proveedor
+		std::string detail;
+		auto ej = res.json().unwrapOr(matjson::Value());
+		if (auto m = ej["error"]["message"].asString(); m.isOk()) detail = m.unwrap();
+		else if (auto m2 = ej["error"].asString(); m2.isOk()) detail = m2.unwrap();
+
+		this->setStatus(fmt::format("Error {} (toca OK para ver el detalle)", code), COL_ERR);
+		if (detail.empty()) detail = "El servidor no devolvio detalles. Revisa la key y el modelo en los ajustes.";
+		log::error("Error {} ({}): {}", code, m_provider, detail);
+		FLAlertLayer::create(fmt::format("Error {} ({})", code, m_provider).c_str(), detail, "OK")->show();
+		return;
 	}
 
 	auto json = res.json().unwrapOr(matjson::Value());
