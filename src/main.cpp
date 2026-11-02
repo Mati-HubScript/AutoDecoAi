@@ -16,11 +16,11 @@ class $modify(DecorEditorUI, EditorUI) {
 
 		auto label = CCLabelBMFont::create("IA", "bigFont.fnt");
 		auto spr = CircleButtonSprite::create(label, CircleBaseColor::Green, CircleBaseSize::Medium);
-		spr->setScale(0.75f);
+		spr->setScale(0.6f);
 
 		auto btn = CCMenuItemSpriteExtra::create(spr, this, menu_selector(DecorEditorUI::onOpenDecor));
-		// Ajusta la posición si choca con otro botón
-		btn->setPosition({win.width - 32.f, win.height - 110.f});
+		// Barra superior, entre la papelera y el deslizador. Ajusta si choca con otro boton
+		btn->setPosition({230.f, win.height - 22.f});
 		menu->addChild(btn);
 
 		this->addChild(menu, 100);
