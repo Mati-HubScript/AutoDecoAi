@@ -1,0 +1,74 @@
+{
+	"geode": "4.2.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "tunombre.decorador-ia",
+	"name": "Decorador IA",
+	"version": "v1.1.0",
+	"developer": "TuNombre",
+	"description": "Selecciona una parte del nivel, escribe un estilo y la IA la decora con objetos del editor. Soporta Gemini (gratis), Ollama (local) y Anthropic.",
+	"tags": ["editor", "utility", "enhancement"],
+	"settings": {
+		"provider": {
+			"type": "string",
+			"name": "Proveedor de IA",
+			"description": "Gemini tiene nivel gratuito. Ollama funciona en local (solo PC). Anthropic es de pago.",
+			"default": "Gemini",
+			"one-of": ["Gemini", "Ollama", "Anthropic"]
+		},
+		"gemini-key": {
+			"type": "string",
+			"name": "Gemini: API key",
+			"description": "Gratis en aistudio.google.com/apikey. Se guarda en texto plano en tu equipo.",
+			"default": ""
+		},
+		"gemini-model": {
+			"type": "string",
+			"name": "Gemini: modelo",
+			"description": "Modelo de Gemini a usar.",
+			"default": "gemini-2.5-flash"
+		},
+		"ollama-url": {
+			"type": "string",
+			"name": "Ollama: URL",
+			"description": "Dirección del servidor de Ollama.",
+			"default": "http://localhost:11434"
+		},
+		"ollama-model": {
+			"type": "string",
+			"name": "Ollama: modelo",
+			"description": "Modelo ya descargado con 'ollama pull'.",
+			"default": "llama3.1"
+		},
+		"anthropic-key": {
+			"type": "string",
+			"name": "Anthropic: API key",
+			"description": "De console.anthropic.com (de pago). Se guarda en texto plano en tu equipo.",
+			"default": ""
+		},
+		"anthropic-model": {
+			"type": "string",
+			"name": "Anthropic: modelo",
+			"description": "Modelo de Claude a usar.",
+			"default": "claude-sonnet-5-5"
+		},
+		"allowed-ids": {
+			"type": "string",
+			"name": "IDs de objetos permitidos",
+			"description": "IDs separados por coma que la IA puede colocar. Usa objetos de decoración (sin hitbox) para no alterar la jugabilidad.",
+			"default": "1,2,3,4,5,6,7,40"
+		},
+		"max-objects": {
+			"type": "int",
+			"name": "Máx. objetos nuevos",
+			"description": "Límite de objetos que la IA puede crear por petición.",
+			"default": 80,
+			"min": 5,
+			"max": 300
+		}
+	}
+}
