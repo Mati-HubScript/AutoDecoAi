@@ -8,59 +8,74 @@
 	},
 	"id": "pulido.decorador-ia",
 	"name": "Decorador IA",
-	"version": "v1.2.1",
+	"version": "v1.2.6",
 	"developer": "pulidomc",
 	"description": "Selecciona una parte del nivel, escribe un estilo y la IA la decora con objetos del editor. Soporta Gemini (gratis), Ollama (local) y Anthropic.",
-	"tags": ["editor", "utility", "enhancement"],
+	"tags": [
+		"editor",
+		"utility",
+		"enhancement"
+	],
 	"settings": {
 		"provider": {
 			"type": "string",
 			"name": "Proveedor de IA",
 			"description": "Gemini tiene nivel gratuito. Ollama funciona en local (solo PC). Anthropic es de pago.",
 			"default": "Gemini",
-			"one-of": ["Gemini", "Ollama", "Anthropic"]
+			"one-of": [
+				"Gemini",
+				"Ollama",
+				"Anthropic"
+			]
 		},
 		"gemini-key": {
 			"type": "string",
 			"name": "Gemini: API key",
 			"description": "Gratis en aistudio.google.com/apikey. Se guarda en texto plano en tu equipo.",
-			"default": ""
+			"default": "",
+			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
 		},
 		"gemini-model": {
 			"type": "string",
 			"name": "Gemini: modelo",
 			"description": "Modelo de Gemini a usar.",
-			"default": "gemini-2.5-flash"
+			"default": "gemini-2.5-flash",
+			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_:/"
 		},
 		"ollama-url": {
 			"type": "string",
 			"name": "Ollama: URL",
 			"description": "Dirección del servidor de Ollama.",
-			"default": "http://localhost:11434"
+			"default": "http://localhost:11434",
+			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_:/"
 		},
 		"ollama-model": {
 			"type": "string",
 			"name": "Ollama: modelo",
 			"description": "Modelo ya descargado con 'ollama pull'.",
-			"default": "llama3.1"
+			"default": "llama3.1",
+			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_:/"
 		},
 		"anthropic-key": {
 			"type": "string",
 			"name": "Anthropic: API key",
 			"description": "De console.anthropic.com (de pago). Se guarda en texto plano en tu equipo.",
-			"default": ""
+			"default": "",
+			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
 		},
 		"anthropic-model": {
 			"type": "string",
 			"name": "Anthropic: modelo",
 			"description": "Modelo de Claude a usar.",
-			"default": "claude-sonnet-5-5"
+			"default": "claude-sonnet-5-5",
+			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_:/"
 		},
 		"allowed-ids": {
 			"type": "string",
 			"name": "IDs de objetos permitidos",
 			"description": "IDs separados por coma que la IA puede colocar. Usa objetos de decoración (sin hitbox) para no alterar la jugabilidad.",
-			"default": "1,2,3,4,5,6,7,40"
+			"default": "1,2,3,4,5,6,7,40",
+			"filter": "0123456789, "
 		},
 		"max-objects": {
 			"type": "int",
